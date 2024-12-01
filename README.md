@@ -16,5 +16,5 @@ npm install -g http-server
 Run the following command in the root directory:
 
 ```bash
-http-server ./test
+http-server
 ```
