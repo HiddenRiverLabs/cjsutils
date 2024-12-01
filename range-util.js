@@ -9,25 +9,26 @@ export class RangeUtil {
 
     /**
      * Creates an instance of RangeUtil.
-     * @param {string} [name='Not Specified'] - The name of the range.
-     * @param {boolean} [autoMergeAddedRanges=true] - Whether to automatically merge overlapping ranges.
+     * @param {Object} [options] - The options for the range.
+     * @param {string} [options.name='Not Specified'] - The name of the range.
+     * @param {boolean} [options.autoMergeAddedRanges=true] - Whether to automatically merge overlapping ranges.
      */
-    constructor(name = this.#defaultRangeName, autoMergeAddedRanges = true) {
-        this.#name = name;
-        this.#autoMergeAddedRanges = autoMergeAddedRanges;
+    constructor({ name, autoMergeAddedRanges }) {
+        this.#name = name || this.#defaultRangeName;
+        this.#autoMergeAddedRanges = autoMergeAddedRanges || true;
     }
 
     /**
      * Adds a range to the list of data ranges.
-     * @param {number} start - The start of the range.
-     * @param {number} [end=start] - The end of the range.
+     * @param {Object} options - The options for the range.
+     * @param {number} options.start - The start of the range.
+     * @param {number} [options.end=options.start] - The end of the range.
      * @throws {Error} Throws an error if the start or end values are not numbers.
      */
-    addRange(start, end) {
-        if (typeof start !== 'number') {
+    addRange({ start, end = start }) {
+        if (typeof start !== 'number' || typeof end !== 'number') {
             throw new Error('Number ranges must be numbers');
         }
-        end = end || start;
         if (start > end) {
             const temp = start;
             start = end;
@@ -44,7 +45,7 @@ export class RangeUtil {
      * @private
      */
     #mergeRanges() {
-        this.#dataRanges.sort((a, b) => a.length > 0 && b.length > 0 ? a[0] - b[0] : 0);
+        this.#dataRanges.sort((a, b) => a[0] - b[0]);
         for (let i = 0; i < this.#dataRanges.length - 1; i++) {
             if (this.#dataRanges[i][1] >= this.#dataRanges[i + 1][0]) {
                 this.#dataRanges[i][1] = this.#dataRanges[i + 1][1];
@@ -114,9 +115,13 @@ export class RangeUtil {
      * Returns an array of ranges with the specified value.
      * @param {string} value - The value to be found in the ranges.
      * @returns {Array<Array<number>>} An array of ranges with the specified value. (Start <= value < End)
+     * @throws {Error} Throws an error if the value is not a number.
      */
     getRangesContainingValue(value) {
-        return this.#dataRanges.filter(range => range.length > 1 && range[0] <= value && value < range[1]);
+        if (typeof value !== 'number') {
+            throw new Error('Value must be a number');
+        }
+        return this.#dataRanges.filter(range => (range[0] === value && range[1] === value) || (range[0] <= value && value < range[1]));
     }
 }
 /**
@@ -127,24 +132,31 @@ export class DateRangeUtil {
 
     /**
      * Creates an instance of DateRangeUtil.
-     * @param {string} [name='Not Specified'] - The name of the date range.
+     * @param {Object} [options] - The options for the date range.
+     * @param {string} [options.name='Not Specified'] - The name of the date range.
+     * @param {boolean} [options.autoMergeAddedRanges=true] - Whether to automatically merge overlapping ranges.
      */
-    constructor(name, autoMergeAddedRanges = true) {
-        this.#rangeUtil = new RangeUtil(name, autoMergeAddedRanges);
+    constructor({ name, autoMergeAddedRanges = true }) {
+        this.#rangeUtil = new RangeUtil({ name, autoMergeAddedRanges });
     }
 
     /**
      * Adds a date range to the utility.
-     * If no start date is provided, the current date is used.
+     * If no start date is provided, the current local date at midnight is used.
      * If no end date is provided, the start date is used.
-     * @param {Date} startDate - The start date of the range.
-     * @param {Date} endDate - The end date of the range.
+     * @param {Object} options - The options for the date range.
+     * @param {Date} options.startDate - The start date of the range.
+     * @param {Date} [options.endDate=options.startDate] - The end date of the range.
      */
-    addRange(startDate, endDate) {
+    addRange({ startDate, endDate = startDate }) {
         const today = new Date();
-        startDate = startDate?.valueOf() || new Date(today.getFullYear(), today.getMonth(), today.getDate()).valueOf();
-        endDate = endDate?.valueOf() || startDate;
-        this.#rangeUtil.addRange(startDate, endDate);
+        if (!(startDate instanceof Date)) {
+            startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        }
+        if (!(endDate instanceof Date)) {
+            endDate = startDate;
+        }
+        this.#rangeUtil.addRange({ start: startDate.valueOf(), end: endDate.valueOf() });
     }
 
     /**
@@ -180,13 +192,13 @@ export class DateRangeUtil {
     }
 
     /**
-     * Returns an array of ranges with the specified vslur.
-     * @param {string} date - The JS Date to be found in the ranges.
-     * @returns {Array<Array<number>>} An array of ranges with the specified value. (Start <= value < End)
+     * Returns an array of ranges with the specified value.
+     * @param {Date} value - The JS Date to be found in the ranges.
+     * @returns {Array<Array<Date>>} An array of JS Date ranges with the specified value. (Start <= value < End)
      */
     getRangesContainingValue(value) {
         if (value instanceof Date) {
-            return this.#rangeUtil.getRangesContainingValue(value.valueOf());
+            return this.#rangeUtil.getRangesContainingValue(value.valueOf()).map(([start, end]) => [new Date(start), new Date(end)]);
         }
         return [];
     }
