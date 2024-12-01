@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RangeUtil Test</title>
+    <script type="module">
+        import { RangeUtil, DateRangeUtil } from '../range-util.js';
+
+        function runTests() {
+            const results = [];
+            let rangeUtil, dateRangeUtil;
+
+            function beforeEach() {
+                rangeUtil = new RangeUtil({ name: 'Test Range', autoMergeAddedRanges: true });
+                dateRangeUtil = new DateRangeUtil({ name: 'Test Date Range', autoMergeAddedRanges: true });
+            }
+
+            function test(description, fn) {
+                try {
+                    beforeEach();
+                    fn();
+                    results.push({ description, passed: true });
+                } catch (error) {
+                    results.push({ description, passed: false, error });
+                }
+            }
+
+            test('should set default name if no name is provided', () => {
+                const defaultRangeUtil = new RangeUtil({});
+                if (defaultRangeUtil.name !== 'Not Specified') {
+                    throw new Error(`Expected 'Not Specified', but got ${defaultRangeUtil.name}`);
+                }
+            });
+
+            test('should add a range', () => {
+                rangeUtil.addRange({ start: 1, end: 5 });
+                const ranges = rangeUtil.getRangesContainingValue(3);
+                if (ranges.length !== 1 || ranges[0][0] !== 1 || ranges[0][1] !== 5) {
+                    throw new Error(`Expected [[1, 5]], but got ${JSON.stringify(ranges)}`);
+                }
+            });
+
+            test('should merge overlapping ranges', () => {
+                rangeUtil.addRange({ start: 1, end: 5 });
+                rangeUtil.addRange({ start: 4, end: 10 });
+                const ranges = rangeUtil.getRangesContainingValue(6);
+                if (ranges.length !== 1 || ranges[0][0] !== 1 || ranges[0][1] !== 10) {
+                    throw new Error(`Expected [[1, 10]], but got ${JSON.stringify(ranges)}`);
+                }
+            });
+
+            test('should throw an error if value is not a number', () => {
+                try {
+                    rangeUtil.getRangesContainingValue('a');
+                    throw new Error('Expected error, but none was thrown');
+                } catch (error) {
+                    if (error.message !== 'Value must be a number') {
+                        throw new Error(`Expected 'Value must be a number', but got ${error.message}`);
+                    }
+                }
+            });
+
+            test('should handle single number as range', () => {
+                const rangeStart = 1;
+                rangeUtil.addRange({ start: rangeStart });
+                const ranges = rangeUtil.getRangesContainingValue(rangeStart);
+                if (ranges.length !== 1 || ranges[0][0] !== rangeStart || ranges[0][1] !== rangeStart) {
+                    throw new Error(`Expected [[${rangeStart}, ${rangeStart}]], but got ${JSON.stringify(ranges)}`);
+                }
+            });
+
+            test('should set and get name', () => {
+                dateRangeUtil.name = 'New Name';
+                if (dateRangeUtil.name !== 'New Name') {
+                    throw new Error(`Expected 'New Name', but got ${dateRangeUtil.name}`);
+                }
+            });
+
+            test('should add a date range', () => {
+                const startDate = new Date(2023, 0, 1);
+                const endDate = new Date(2023, 0, 5);
+                dateRangeUtil.addRange({ startDate, endDate });
+                const ranges = dateRangeUtil.getRangesContainingValue(startDate);
+                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate.valueOf() || ranges[0][1].valueOf() !== endDate.valueOf()) {
+                    throw new Error(`Expected [[${startDate}, ${endDate}]], but got ${JSON.stringify(ranges)}`);
+                }
+            });
+
+            test('should merge overlapping date ranges', () => {
+                const startDate1 = new Date(2023, 0, 1);
+                const endDate1 = new Date(2023, 0, 5);
+                const startDate2 = new Date(2023, 0, 4);
+                const endDate2 = new Date(2023, 0, 10);
+                dateRangeUtil.addRange({ startDate: startDate1, endDate: endDate1 });
+                dateRangeUtil.addRange({ startDate: startDate2, endDate: endDate2 });
+                const ranges = dateRangeUtil.getRangesContainingValue(new Date(2023, 0, 6));
+                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate1.valueOf() || ranges[0][1].valueOf() !== endDate2.valueOf()) {
+                    throw new Error(`Expected [[${startDate1.valueOf()}, ${endDate2.valueOf()}]], but got ${JSON.stringify(ranges)}`);
+                }
+            });
+
+            test('should handle single date as range', () => {
+                const startDate = new Date(2023, 0, 1);
+                dateRangeUtil.addRange({ startDate });
+                const ranges = dateRangeUtil.getRangesContainingValue(startDate);
+                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate.valueOf() || ranges[0][1].valueOf() !== startDate.valueOf()) {
+                    throw new Error(`Expected [[${startDate.valueOf()}, ${startDate.valueOf()}]], but got ${JSON.stringify(ranges)}`);
+                }
+            });
+
+            return results;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const results = runTests();
+            const ul = document.createElement('ul');
+            results.forEach(result => {
+                const li = document.createElement('li');
+                li.textContent = result.passed ? `✔️ ${result.description}` : `❌ ${result.description}: ${result.error.message}`;
+                ul.appendChild(li);
+            });
+            document.body.appendChild(ul);
+        });
+    </script>
+</head>
+
+<body>
+    <h1>RangeUtil Test Results</h1>
+</body>
+
+</html>
