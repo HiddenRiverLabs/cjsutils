@@ -1,11 +1,13 @@
 /**
  * Utility class for managing ranges.
+ * Ranges are stored as an array of arrays where each sub-array contains two numbers representing the start and end of the range.
+ * The ranges are sorted by the start value.
+ * A range can have a null value representing +/- infinity.
  */
 export class RangeUtil {
-    #name;
+    #name = 'Not Specified';
     #dataRanges = [];
-    #autoMergeAddedRanges;
-    #defaultRangeName = 'Not Specified';
+    #autoMergeAddedRanges = true;
 
     /**
      * Creates an instance of RangeUtil.
@@ -14,22 +16,32 @@ export class RangeUtil {
      * @param {boolean} [options.autoMergeAddedRanges=true] - Whether to automatically merge overlapping ranges.
      */
     constructor({ name, autoMergeAddedRanges }) {
-        this.#name = name || this.#defaultRangeName;
-        this.#autoMergeAddedRanges = autoMergeAddedRanges || true;
+        this.#name ??= name;
+        this.#autoMergeAddedRanges ??= autoMergeAddedRanges;
     }
 
     /**
      * Adds a range to the list of data ranges.
      * @param {Object} options - The options for the range.
      * @param {number} options.start - The start of the range.
-     * @param {number} [options.end=options.start] - The end of the range.
-     * @throws {Error} Throws an error if the start or end values are not numbers.
+     * @param {number} options.end - The end of the range.
+     * @throws {Error} Throws an error if the start or end values are not numbers, or both are null.
      */
-    addRange({ start, end = start }) {
-        if (typeof start !== 'number' || typeof end !== 'number') {
-            throw new Error('Number ranges must be numbers');
+    addRange({ start, end }) {
+        if (start === null && end === null) {
+            throw new Error('Cannot add null start and end range. That\'s not a range.');
         }
-        if (start > end) {
+
+        if (typeof start !== 'number' && typeof end !== 'number') {
+            throw new Error('Start or end value must be a number.');
+        }
+        if (typeof start !== 'number') {
+            start = null;
+        }
+        if (typeof end !== 'number') {
+            end = null;
+        }
+        if (start !== null && end !== null && start > end) {
             const temp = start;
             start = end;
             end = temp;
@@ -45,10 +57,17 @@ export class RangeUtil {
      * @private
      */
     #mergeRanges() {
-        this.#dataRanges.sort((a, b) => a[0] - b[0]);
+        // make sure all ranges are sorted by start value with null values at the beginning.
+        this.#dataRanges.sort((a, b) => a[0] === null ? -1 : b[0] === null ? 1 : a[0] - b[0]);
+        // Merge overlapping ranges where start is inclusive and end is exclusive. So [1, 3] and [3, 5] would merge to [1, 5], but [1, 3] and [4, 5] would not merge.
         for (let i = 0; i < this.#dataRanges.length - 1; i++) {
-            if (this.#dataRanges[i][1] >= this.#dataRanges[i + 1][0]) {
-                this.#dataRanges[i][1] = this.#dataRanges[i + 1][1];
+            // check to see if we can merge based on first range end being > second range start, or the second range start being null.
+            if (this.#dataRanges[i + 1][0] === null || (this.#dataRanges[i + 1][0] !== null && this.#dataRanges[i][1] > this.#dataRanges[i + 1][0])) {
+                // throw an error if second range end is null and first range start is null.
+                if (this.#dataRanges[i + 1][1] === null && this.#dataRanges[i][1] === null) {
+                    throw new Error('Cannot merge ranges resulting in null start and end values.');
+                }
+                this.#dataRanges[i][1] = Math.max(this.#dataRanges[i][1], this.#dataRanges[i + 1][1]);
                 this.#dataRanges.splice(i + 1, 1);
                 i--;
             }
@@ -60,7 +79,7 @@ export class RangeUtil {
      * @type {number}
      */
     get length() {
-        return this.#dataRanges.reduce((acc, range) => range.length > 1 ? acc + (range[1] - range[0]) : acc + 0, 0);
+        return this.#dataRanges.reduce((acc, range) => range.length > 1 && range[0] !== null && range[1] !== null ? acc + (range[1] - range[0]) : acc + 0, 0);
     }
 
     /**
@@ -68,7 +87,7 @@ export class RangeUtil {
      * @type {number}
      */
     get min() {
-        return this.#dataRanges.reduce((acc, range) => range.length > 1 ? Math.min(acc, range[0]) : acc, Infinity);
+        return this.#dataRanges.reduce((acc, range) => range.length > 1 && range[0] !== null ? Math.min(acc, range[0]) : acc, Infinity);
     }
 
     /**
@@ -76,18 +95,49 @@ export class RangeUtil {
      * @type {number}
      */
     get max() {
-        return this.#dataRanges.reduce((acc, range) => range.length > 1 ? Math.max(acc, range[1]) : acc, -Infinity);
+        return this.#dataRanges.reduce((acc, range) => range.length > 1 && range[1] !== null ? Math.max(acc, range[1]) : acc, -Infinity);
     }
 
     /**
      * Returns the gaps between the ranges.
+     * @param {Object} options - The options for the range.
+     * @param {Array} options.range - Uses this range to find gaps when refrencing the data ranges.
      * @type {Array<Array<number>>}
      */
-    get rangeGaps() {
+    rangeGaps({ start, end }) {
         const gaps = [];
-        for (let i = 0; i < this.#dataRanges.length - 1; i++) {
-            if (this.#dataRanges[i]?.length > 1 && this.#dataRanges[i + 1]?.length > 0) {
-                gaps.push([this.#dataRanges[i][1], this.#dataRanges[i + 1][0]]);
+        if (this.#autoMergeAddedRanges && this.#dataRanges.length > 0) {
+            // If a range is provided, use that to find the gaps.
+            if (typeof start === 'number' && typeof end === 'number' && isNaN(start) === false && isNaN(end) === false) {
+                const range = [Math.min(start, end), Math.max(start, end)];
+                // if dataRanges is [[1, 3]] and the passed in range is [0, 5], then the gap is [0, 1] and [3, 5]
+                // another example is [[1, 3], [5, 7]] and the passed in range is [0, 8], then the gap is [0, 1], [3, 5], [7, 8]
+                // check the first range to see if start is before the first range start.
+                if (this.#dataRanges[0][0] !== null && this.#dataRanges[0][0] > range[0]) {
+                    gaps.push([range[0], this.#dataRanges[0][0]]);
+                }
+                // loop through the data ranges.
+                for (let i = 0; i < this.#dataRanges.length - 1; i++) {
+                    // if range end is greater than the passed in start, then push range end to min of next range start and passed in end.
+                    if (this.#dataRanges[i][1] > range[0]) {
+                        const gapEnd = Math.min(this.#dataRanges[i + 1][0], range[1]);
+                        gaps.push([this.#dataRanges[i][1], gapEnd]);
+                        // if the gap end is the same as the passed in end, then break out of the loop.
+                        if (gapEnd === range[1]) {
+                            break;
+                        }
+                    }
+                }
+                // check the last range to see if end is after the last range end.
+                if (this.#dataRanges[this.#dataRanges.length - 1][1] !== null && this.#dataRanges[this.#dataRanges.length - 1][1] < range[1]) {
+                    gaps.push([this.#dataRanges[this.#dataRanges.length - 1][1], range[1]]);
+                }
+            } else {
+                if (this.#dataRanges.length > 1) {
+                    for (let i = 0; i < this.#dataRanges.length - 1; i++) {
+                        gaps.push([this.#dataRanges[i][1], this.#dataRanges[i + 1][0]]);
+                    }
+                }
             }
         }
         return gaps;
@@ -121,7 +171,7 @@ export class RangeUtil {
         if (typeof value !== 'number') {
             throw new Error('Value must be a number');
         }
-        return this.#dataRanges.filter(range => (range[0] === value && range[1] === value) || (range[0] <= value && value < range[1]));
+        return this.#dataRanges.filter(range => range[0] === value || (range[0] <= value && value < range[1]));
     }
 }
 /**
@@ -136,7 +186,7 @@ export class DateRangeUtil {
      * @param {string} [options.name='Not Specified'] - The name of the date range.
      * @param {boolean} [options.autoMergeAddedRanges=true] - Whether to automatically merge overlapping ranges.
      */
-    constructor({ name, autoMergeAddedRanges = true }) {
+    constructor({ name, autoMergeAddedRanges }) {
         this.#rangeUtil = new RangeUtil({ name, autoMergeAddedRanges });
     }
 
@@ -146,17 +196,10 @@ export class DateRangeUtil {
      * If no end date is provided, the start date is used.
      * @param {Object} options - The options for the date range.
      * @param {Date} options.startDate - The start date of the range.
-     * @param {Date} [options.endDate=options.startDate] - The end date of the range.
+     * @param {Date} options.endDate - The end date of the range
      */
-    addRange({ startDate, endDate = startDate }) {
-        const today = new Date();
-        if (!(startDate instanceof Date)) {
-            startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        }
-        if (!(endDate instanceof Date)) {
-            endDate = startDate;
-        }
-        this.#rangeUtil.addRange({ start: startDate.valueOf(), end: endDate.valueOf() });
+    addRange({ startDate, endDate }) {
+        this.#rangeUtil.addRange({ start: startDate?.valueOf(), end: endDate?.valueOf() });
     }
 
     /**
@@ -187,8 +230,8 @@ export class DateRangeUtil {
      * Gets the gap dates between the date ranges.
      * @returns {Array<Array<Date>>} An array of gap dates between the ranges in the date range.
      */
-    get rangeGapDates() {
-        return this.#rangeUtil.rangeGaps.map(([start, end]) => [new Date(start), new Date(end)]);
+    rangeGapDates({ start, end }) {
+        return this.#rangeUtil.rangeGaps({ start: start?.valueOf(), end: end?.valueOf() }).map(([start, end]) => [new Date(start), new Date(end)]);
     }
 
     /**
@@ -198,7 +241,9 @@ export class DateRangeUtil {
      */
     getRangesContainingValue(value) {
         if (value instanceof Date) {
-            return this.#rangeUtil.getRangesContainingValue(value.valueOf()).map(([start, end]) => [new Date(start), new Date(end)]);
+            return this.#rangeUtil.getRangesContainingValue(value.valueOf()).map(([start, end]) => {
+                return [start ? new Date(start) : null, end ? new Date(end) : null];
+            });
         }
         return [];
     }

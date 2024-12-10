@@ -66,9 +66,27 @@
                 const rangeStart = 1;
                 rangeUtil.addRange({ start: rangeStart });
                 const ranges = rangeUtil.getRangesContainingValue(rangeStart);
-                if (ranges.length !== 1 || ranges[0][0] !== rangeStart || ranges[0][1] !== rangeStart) {
+                if (ranges.length !== 1 || ranges[0][0] !== rangeStart || ranges[0][1] !== null) {
                     throw new Error(`Expected [[${rangeStart}, ${rangeStart}]], but got ${JSON.stringify(ranges)}`);
                 }
+            });
+
+            // test rangeGaps
+            test('should find range gaps based on passed in start and end', () => {
+                rangeUtil.addRange({ start: 1, end: 5 });
+                rangeUtil.addRange({ start: 10, end: 15 });
+                const gaps = rangeUtil.rangeGaps({ start: 0, end: 20 });
+                console.log('bounded');
+                console.log(gaps);
+            });
+
+            // test rangeGaps with unbouunded ranges
+            test('should find range gaps based on passed in start and end with unbounded ranges', () => {
+                rangeUtil.addRange({ start: null, end: 5 });
+                rangeUtil.addRange({ start: 10, end: null });
+                const gaps = rangeUtil.rangeGaps({ start: 0, end: 20 });
+                console.log('unbounded');
+                console.log(gaps);
             });
 
             test('should set and get name', () => {
@@ -105,9 +123,22 @@
                 const startDate = new Date(2023, 0, 1);
                 dateRangeUtil.addRange({ startDate });
                 const ranges = dateRangeUtil.getRangesContainingValue(startDate);
-                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate.valueOf() || ranges[0][1].valueOf() !== startDate.valueOf()) {
-                    throw new Error(`Expected [[${startDate.valueOf()}, ${startDate.valueOf()}]], but got ${JSON.stringify(ranges)}`);
+                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate.valueOf() || ranges[0][1] !== null) {
+                    throw new Error(`Expected [[${startDate.valueOf()}, null}]], but got ${JSON.stringify(ranges)}`);
                 }
+            });
+
+            // test date range gaps
+            test('should find date range gaps based on passed in start and end', () => {
+                const startDate1 = new Date(2023, 0, 1);
+                const endDate1 = new Date(2023, 0, 5);
+                const startDate2 = new Date(2023, 0, 10);
+                const endDate2 = new Date(2023, 0, 15);
+                dateRangeUtil.addRange({ startDate: startDate1, endDate: endDate1 });
+                dateRangeUtil.addRange({ startDate: startDate2, endDate: endDate2 });
+                const gaps = dateRangeUtil.rangeGapDates({ start: new Date(2023, 0, 0), end: new Date(2023, 0, 20) });
+                console.log('bounded dates');
+                console.log(gaps);
             });
 
             return results;
