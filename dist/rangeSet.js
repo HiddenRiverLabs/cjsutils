@@ -1,4 +1,4 @@
-import { Range } from './range.js';
+import { Range } from "./range.js";
 export class RangeSetOptions {
     constructor() {
         this.mergeAddedRanges = true;
