@@ -6,15 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RangeUtil Test</title>
     <script type="module">
-        import { RangeUtil, DateRangeUtil } from '../range-util.js';
+        import { RangeSet } from '../dist/rangeSet.js';
+        import { Range } from '../dist/range.js';
 
         function runTests() {
             const results = [];
-            let rangeUtil, dateRangeUtil;
+            let rangeUtil;
 
             function beforeEach() {
-                rangeUtil = new RangeUtil({ name: 'Test Range', autoMergeAddedRanges: true });
-                dateRangeUtil = new DateRangeUtil({ name: 'Test Date Range', autoMergeAddedRanges: true });
+                rangeUtil = new RangeSet({});
             }
 
             function test(description, fn) {
@@ -27,119 +27,41 @@
                 }
             }
 
-            test('should set default name if no name is provided', () => {
-                const defaultRangeUtil = new RangeUtil({});
-                if (defaultRangeUtil.name !== 'Not Specified') {
-                    throw new Error(`Expected 'Not Specified', but got ${defaultRangeUtil.name}`);
-                }
-            });
-
             test('should add a range', () => {
-                rangeUtil.addRange({ start: 1, end: 5 });
-                const ranges = rangeUtil.getRangesContainingValue(3);
-                if (ranges.length !== 1 || ranges[0][0] !== 1 || ranges[0][1] !== 5) {
+                rangeUtil.addRange(new Range({ a: 1, b: 5 }));
+                const ranges = rangeUtil.getRangesContaining(3);
+                if (ranges.length !== 1 || ranges[0].a !== 1 || ranges[0].b !== 5) {
                     throw new Error(`Expected [[1, 5]], but got ${JSON.stringify(ranges)}`);
                 }
             });
 
             test('should merge overlapping ranges', () => {
-                rangeUtil.addRange({ start: 1, end: 5 });
-                rangeUtil.addRange({ start: 4, end: 10 });
-                const ranges = rangeUtil.getRangesContainingValue(6);
-                if (ranges.length !== 1 || ranges[0][0] !== 1 || ranges[0][1] !== 10) {
+                rangeUtil.addRange(new Range({ a: 1, b: 5 }));
+                rangeUtil.addRange(new Range({ a: 4, b: 10 }));
+                const ranges = rangeUtil.getRangesContaining(6);
+                if (ranges.length !== 1 || ranges[0].a !== 1 || ranges[0].b !== 10) {
                     throw new Error(`Expected [[1, 10]], but got ${JSON.stringify(ranges)}`);
-                }
-            });
-
-            test('should throw an error if value is not a number', () => {
-                try {
-                    rangeUtil.getRangesContainingValue('a');
-                    throw new Error('Expected error, but none was thrown');
-                } catch (error) {
-                    if (error.message !== 'Value must be a number') {
-                        throw new Error(`Expected 'Value must be a number', but got ${error.message}`);
-                    }
-                }
-            });
-
-            test('should handle single number as range', () => {
-                const rangeStart = 1;
-                rangeUtil.addRange({ start: rangeStart });
-                const ranges = rangeUtil.getRangesContainingValue(rangeStart);
-                if (ranges.length !== 1 || ranges[0][0] !== rangeStart || ranges[0][1] !== null) {
-                    throw new Error(`Expected [[${rangeStart}, ${rangeStart}]], but got ${JSON.stringify(ranges)}`);
                 }
             });
 
             // test rangeGaps
             test('should find range gaps based on passed in start and end', () => {
-                rangeUtil.addRange({ start: 1, end: 5 });
-                rangeUtil.addRange({ start: 10, end: 15 });
-                const gaps = rangeUtil.rangeGaps({ start: 0, end: 20 });
+                rangeUtil.addRange(new Range({ a: 1, b: 5 }));
+                rangeUtil.addRange(new Range({ a: 10, b: 15 }));
+                const gaps = rangeUtil.getRangeGaps(new Range({ a: 0, b: 20 }));
                 console.log('bounded');
                 console.log(gaps);
             });
 
             // test rangeGaps with unbouunded ranges
             test('should find range gaps based on passed in start and end with unbounded ranges', () => {
-                rangeUtil.addRange({ start: null, end: 5 });
-                rangeUtil.addRange({ start: 10, end: null });
-                const gaps = rangeUtil.rangeGaps({ start: 0, end: 20 });
+                rangeUtil.addRange(new Range({ a: -Infinity, b: 5 }));
+                rangeUtil.addRange(new Range({ a: 10, b: Infinity }));
+                const gaps = rangeUtil.getRangeGaps(new Range({ a: 0, b: 20 }));
                 console.log('unbounded');
                 console.log(gaps);
             });
 
-            test('should set and get name', () => {
-                dateRangeUtil.name = 'New Name';
-                if (dateRangeUtil.name !== 'New Name') {
-                    throw new Error(`Expected 'New Name', but got ${dateRangeUtil.name}`);
-                }
-            });
-
-            test('should add a date range', () => {
-                const startDate = new Date(2023, 0, 1);
-                const endDate = new Date(2023, 0, 5);
-                dateRangeUtil.addRange({ startDate, endDate });
-                const ranges = dateRangeUtil.getRangesContainingValue(startDate);
-                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate.valueOf() || ranges[0][1].valueOf() !== endDate.valueOf()) {
-                    throw new Error(`Expected [[${startDate}, ${endDate}]], but got ${JSON.stringify(ranges)}`);
-                }
-            });
-
-            test('should merge overlapping date ranges', () => {
-                const startDate1 = new Date(2023, 0, 1);
-                const endDate1 = new Date(2023, 0, 5);
-                const startDate2 = new Date(2023, 0, 4);
-                const endDate2 = new Date(2023, 0, 10);
-                dateRangeUtil.addRange({ startDate: startDate1, endDate: endDate1 });
-                dateRangeUtil.addRange({ startDate: startDate2, endDate: endDate2 });
-                const ranges = dateRangeUtil.getRangesContainingValue(new Date(2023, 0, 6));
-                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate1.valueOf() || ranges[0][1].valueOf() !== endDate2.valueOf()) {
-                    throw new Error(`Expected [[${startDate1.valueOf()}, ${endDate2.valueOf()}]], but got ${JSON.stringify(ranges)}`);
-                }
-            });
-
-            test('should handle single date as range', () => {
-                const startDate = new Date(2023, 0, 1);
-                dateRangeUtil.addRange({ startDate });
-                const ranges = dateRangeUtil.getRangesContainingValue(startDate);
-                if (ranges.length !== 1 || ranges[0][0].valueOf() !== startDate.valueOf() || ranges[0][1] !== null) {
-                    throw new Error(`Expected [[${startDate.valueOf()}, null}]], but got ${JSON.stringify(ranges)}`);
-                }
-            });
-
-            // test date range gaps
-            test('should find date range gaps based on passed in start and end', () => {
-                const startDate1 = new Date(2023, 0, 1);
-                const endDate1 = new Date(2023, 0, 5);
-                const startDate2 = new Date(2023, 0, 10);
-                const endDate2 = new Date(2023, 0, 15);
-                dateRangeUtil.addRange({ startDate: startDate1, endDate: endDate1 });
-                dateRangeUtil.addRange({ startDate: startDate2, endDate: endDate2 });
-                const gaps = dateRangeUtil.rangeGapDates({ start: new Date(2023, 0, 0), end: new Date(2023, 0, 20) });
-                console.log('bounded dates');
-                console.log(gaps);
-            });
 
             return results;
         }
