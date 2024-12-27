@@ -1,8 +1,20 @@
+/**
+ * Represents a range of numbers.
+ * a or b can be greater than the other.
+ * excludeMin and excludeMax are optional.
+ * name is optional.
+ * @example
+ * const range: IRange = { a: 1, b: 10, excludeMin: true, excludeMax: false, name: 'Range 1' };
+ */
 export type IRange = { a: number, b: number, excludeMin?: boolean, excludeMax?: boolean, name?: string };
 
 /**
  * Represents a range of numbers.
  * a or b can be greater than the other.
+ * excludeMin and excludeMax are optional.
+ * name is optional.
+ * @example
+ * const range: Range = new Range({ a: 1, b: 10, excludeMin: true, excludeMax: false, name: 'Range 1' });
  */
 export class Range implements IRange {
     a: number;
@@ -11,6 +23,12 @@ export class Range implements IRange {
     excludeMax: boolean = true;
     name: string = 'Not Specified';
 
+    /**
+     * Creates a new Range object.
+     * @param range - The range object.
+     * @example
+     * const range: Range = new Range({ a: 1, b: 10, excludeMin: true, excludeMax: false, name: 'Range 1' });
+     */
     constructor(range: IRange) {
         this.a = range.a;
         this.b = range.b;
@@ -19,21 +37,33 @@ export class Range implements IRange {
         this.name = range.name ?? this.name;
     }
 
-    get min() {
+    /**
+     * Returns the minimum value of the range.
+     */
+    get min(): number {
         return Math.min(this.a, this.b);
     }
 
-    get max() {
+    /**
+     * Returns the maximum value of the range.
+     */
+    get max(): number {
         return Math.max(this.a, this.b);
     }
 
-    get length() {
+    /**
+     * Returns the length of the range.
+     */
+    get length(): number {
         return Math.abs(this.b - this.a);
     }
 
+    /**
+     * Returns true if the range contains the given number.
+     */
     contains(x: number): boolean {
-        const lowerBound = this.excludeMin ? this.min < x : this.min <= x;
-        const upperBound = this.excludeMax ? this.max > x : this.max >= x;
+        const lowerBound: boolean = this.excludeMin ? this.min < x : this.min <= x;
+        const upperBound: boolean = this.excludeMax ? this.max > x : this.max >= x;
         return lowerBound && upperBound;
     }
 
