@@ -1,2 +1,2 @@
-export { Range, IRange } from './range';
-export { RangeSet, RangeSetOptions } from './rangeSet';
+export { Range, IRange } from './range.ts';
+export { RangeSet, RangeSetOptions } from './rangeSet.ts';

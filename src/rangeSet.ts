@@ -1,4 +1,4 @@
-import { Range } from './range';
+import { Range } from './range.ts';
 
 export class RangeSetOptions {
     mergeAddedRanges: boolean = true;
