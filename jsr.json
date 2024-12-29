@@ -1,6 +1,6 @@
 {
-    "name": "@hrl/cjsutils",
-    "version": "0.1.9",
+    "name": "@hrl/ts-math-utils",
+    "version": "0.1.10",
     "license": "MIT",
     "exports": "./src/mod.ts"
 }
