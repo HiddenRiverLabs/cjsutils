@@ -1,6 +1,6 @@
 {
     "name": "@hrl/cjsutils",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "license": "MIT",
     "exports": "./src/mod.ts"
 }
