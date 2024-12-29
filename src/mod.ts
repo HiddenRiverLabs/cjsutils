@@ -1,3 +1,3 @@
-export type { IRange } from './range.ts';
-export { Range } from './range.ts';
-export { RangeSet, RangeSetOptions } from './rangeSet.ts';
+export type { IInterval } from './interval';
+export { Interval } from './interval';
+export { IntervalSet, IntervalSetOptions } from './IntervalSet';
