@@ -1,9 +1,9 @@
 # cjsutils
 
-Just a couple of higher-level functions built with ES Modules
+Math-based objects not inluded in JS, built in TS.
 
-- Range Util
-- Date Range Util (built on range util, specifically for JS dates using valueOf)
+- Interval: create an interval with IInterval shape or string representation
+- IntervalSet: track a list of intervals with the option to merge overlapping intervals. get array of intervals that represent the gaps between the intervals.
 
 ## Testing
 
