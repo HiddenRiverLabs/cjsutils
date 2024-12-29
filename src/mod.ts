@@ -1,3 +1,3 @@
-export type { IInterval } from './interval';
-export { Interval } from './interval';
-export { IntervalSet, IntervalSetOptions } from './IntervalSet';
+export type { IInterval } from './interval.ts';
+export { Interval } from './interval.ts';
+export { IntervalSet, IntervalSetOptions } from './intervalSet.ts';
