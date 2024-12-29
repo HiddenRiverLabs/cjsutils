@@ -1,4 +1,4 @@
-import { IInterval, Interval } from './interval.ts';
+import { IInterval, Interval } from './interval';
 
 /**
  * Represents interval set options.
