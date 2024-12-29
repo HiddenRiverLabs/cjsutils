@@ -1,4 +1,4 @@
-# cjsutils
+# ts-math-utils
 
 Math-based objects not inluded in JS, built in TS.
 
