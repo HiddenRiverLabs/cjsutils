@@ -7,14 +7,14 @@
     <title>IntervalSet Tests</title>
     <script type="module">
         import { IntervalSet } from '../dist/intervalSet.js';
-        import { Interval } from '../dist/interval.js';
+        import { IntervalNumber, Interval } from '../dist/interval.js';
 
         function runTests() {
             const results = [];
             let intervalSet;
 
             function beforeEach() {
-                intervalSet = new IntervalSet({});
+                intervalSet = new IntervalSet();
             }
 
             function test(description, fn) {
@@ -27,87 +27,87 @@
                 }
             }
 
-            test('should add an interval [1, 5) and find 3 contained', () => {
-                intervalSet.addInterval(new Interval({ a: 1, b: 5 }));
-                const intervals = intervalSet.getIntervalsContaining(3);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 5) {
-                    throw new Error(`Expected [1, 5], but got ${JSON.stringify(intervals)}`);
+            test('should add an interval [1, 5) and find {3} contained', () => {
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(5, false) }));
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(3));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 5)') {
+                    throw new Error(`Expected [1, 5), but got ${JSON.stringify(intervals)}`);
                 }
             });
 
-            test('should add an interval [1, 5) and find 1 contained', () => {
-                intervalSet.addInterval(new Interval({ a: 1, b: 5 }));
-                const intervals = intervalSet.getIntervalsContaining(1);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 5) {
+            test('should add an interval [1, 5) and find {1} contained', () => {
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(5, false) }));
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(1));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 5)') {
                     throw new Error(`Expected [], but got ${JSON.stringify(intervals)}`);
                 }
             });
 
-            test('should add an interval [1, 5) and find 5 NOT contained', () => {
-                intervalSet.addInterval(new Interval({ a: 1, b: 5 }));
-                const intervals = intervalSet.getIntervalsContaining(5);
+            test('should add an interval [1, 5) and find {5} NOT contained', () => {
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(5, false) }));
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(5));
                 if (intervals.length > 0) {
                     throw new Error(`Expected [], but got ${JSON.stringify(intervals)}`);
                 }
             });
 
             test('should add an interval [1, 1] and find 1 contained', () => {
-                intervalSet.addInterval(new Interval({ a: 1, b: 1, excludeMin: false, excludeMax: false }));
-                const intervals = intervalSet.getIntervalsContaining(1);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 1) {
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(1) }));
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(1));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 1]') {
                     throw new Error(`Expected [1, 1], but got ${JSON.stringify(intervals)}`);
                 }
             });
 
             test('should NOT add an interval [1, 1)', () => {
                 try {
-                    intervalSet.addInterval(new Interval({ a: 1, b: 1 }));
+                    intervalSet.addInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(1, false) }));
                     throw new Error(`Expected to throw an error, but didn't`);
                 } catch (error) {
                     return;
                 }
             });
 
-            test('should merge overlapping intervals [1, 5) and [5, 10) by checking intervals containing 5 returning 1 range', () => {
-                intervalSet.addInterval(new Interval({ a: 1, b: 5 }));
-                intervalSet.addInterval(new Interval({ a: 5, b: 10 }));
-                const intervals = intervalSet.getIntervalsContaining(5);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 10) {
-                    throw new Error(`Expected [[1, 10]], but got ${JSON.stringify(intervals)}`);
+            test('should merge overlapping intervals [1, 5) and [5, 10) by checking intervals containing {5}', () => {
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(5, false) }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(5), b: new IntervalNumber(10, false) }));
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(5));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 10)') {
+                    throw new Error(`Expected [1, 10), but got ${JSON.stringify(intervals)}`);
                 }
             });
 
             test('should find interval gaps based on passed in start and end', () => {
-                intervalSet.addInterval(new Interval({ a: 1, b: 5 }));
-                intervalSet.addInterval(new Interval({ a: 10, b: 15 }));
-                const gaps = intervalSet.getIntervalGaps(new Interval({ a: 0, b: 20 }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(5, false) }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(10), b: new IntervalNumber(15, false) }));
+                const gaps = intervalSet.getIntervalGaps(new Interval({ a: new IntervalNumber(0), b: new IntervalNumber(20, false) }));
                 if (gaps.length !== 3 || gaps[0].toString() !== '[0, 1)' || gaps[1].toString() !== '[5, 10)' || gaps[2].toString() !== '[15, 20)') {
                     throw new Error(`Expected [[0, 1), [5, 10), [15, 20)], but got ${JSON.stringify(gaps)}`);
                 }
             });
 
             test('should find interval gaps based on passed in start and end where passed in start is same number as excluded start in interval set', () => {
-                intervalSet.addInterval(new Interval({ a: 1, b: 5, excludeMin: true, excludeMax: true }));
-                intervalSet.addInterval(new Interval({ a: 10, b: 15 }));
-                const gaps = intervalSet.getIntervalGaps(new Interval({ a: 1, b: 20 }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(1, false), b: new IntervalNumber(5, false) }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(10), b: new IntervalNumber(15, false) }));
+                const gaps = intervalSet.getIntervalGaps(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(20, false) }));
                 if (gaps.length !== 3 || gaps[0].toString() !== '[1, 1]' || gaps[1].toString() !== '[5, 10)' || gaps[2].toString() !== '[15, 20)') {
                     throw new Error(`Expected [[0, 1), [5, 10), [15, 20)], but got ${JSON.stringify(gaps)}`);
                 }
             });
 
             test('should find interval gaps based on passed in start and end with unbounded intervals', () => {
-                intervalSet.addInterval(new Interval({ a: -Infinity, b: 5 }));
-                intervalSet.addInterval(new Interval({ a: 10, b: Infinity }));
-                const gaps = intervalSet.getIntervalGaps(new Interval({ a: 0, b: 20 }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(-Infinity), b: new IntervalNumber(5, false) }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(10), b: new IntervalNumber(Infinity) }));
+                const gaps = intervalSet.getIntervalGaps(new Interval({ a: new IntervalNumber(0), b: new IntervalNumber(20, false) }));
                 if (gaps.length !== 1 || gaps[0].toString() !== '[5, 10)') {
-                    throw new Error(`Expected [[5, 10)], but got ${JSON.stringify(gaps)}`);
+                    throw new Error(`Expected [5, 10), but got ${JSON.stringify(gaps)}`);
                 }
             });
 
             test('should find interval gaps based on passed in unbounded start and end with unbounded intervals', () => {
-                intervalSet.addInterval(new Interval({ a: -Infinity, b: 5 }));
-                intervalSet.addInterval(new Interval({ a: 10, b: Infinity }));
-                const gaps = intervalSet.getIntervalGaps(new Interval({ a: -Infinity, b: 20 }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(-Infinity), b: new IntervalNumber(5, false) }));
+                intervalSet.addInterval(new Interval({ a: new IntervalNumber(10), b: new IntervalNumber(Infinity) }));
+                const gaps = intervalSet.getIntervalGaps(new Interval({ a: new IntervalNumber(-Infinity), b: new IntervalNumber(20, false) }));
                 if (gaps.length !== 1 || gaps[0].toString() !== '[5, 10)') {
                     throw new Error(`Expected [[5, 10)], but got ${JSON.stringify(gaps)}`);
                 }
@@ -115,23 +115,23 @@
 
             test('should add an interval \'[1, 5)\' and find 3 contained', () => {
                 intervalSet.addInterval(new Interval('[1, 5)'));
-                const intervals = intervalSet.getIntervalsContaining(3);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 5) {
-                    throw new Error(`Expected [1, 5], but got ${JSON.stringify(intervals)}`);
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(3));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 5)') {
+                    throw new Error(`Expected [1, 5), but got ${JSON.stringify(intervals)}`);
                 }
             });
 
             test('should add an interval \'[1, 5)\' and find 1 contained', () => {
                 intervalSet.addInterval(new Interval('[1, 5)'));
-                const intervals = intervalSet.getIntervalsContaining(1);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 5) {
-                    throw new Error(`Expected [], but got ${JSON.stringify(intervals)}`);
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(1));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 5)') {
+                    throw new Error(`Expected [1, 5), but got ${JSON.stringify(intervals)}`);
                 }
             });
 
             test('should add an interval \'[1, 5)\' and find 5 NOT contained', () => {
                 intervalSet.addInterval(new Interval('[1, 5)'));
-                const intervals = intervalSet.getIntervalsContaining(5);
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(5));
                 if (intervals.length > 0) {
                     throw new Error(`Expected [], but got ${JSON.stringify(intervals)}`);
                 }
@@ -139,8 +139,8 @@
 
             test('should add an interval \'[1, 1]\' and find 1 contained', () => {
                 intervalSet.addInterval(new Interval('[1, 1]'));
-                const intervals = intervalSet.getIntervalsContaining(1);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 1) {
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(1));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 1]') {
                     throw new Error(`Expected [1, 1], but got ${JSON.stringify(intervals)}`);
                 }
             });
@@ -157,22 +157,22 @@
             test('should merge overlapping intervals \'[1, 5)\' and \'[5, 10)\' by checking intervals containing 5 returning 1 range', () => {
                 intervalSet.addInterval(new Interval('[1, 5)'));
                 intervalSet.addInterval(new Interval('[5, 10)'));
-                const intervals = intervalSet.getIntervalsContaining(5);
-                if (intervals.length !== 1 || intervals[0].a !== 1 || intervals[0].b !== 10) {
-                    throw new Error(`Expected [[1, 10]], but got ${JSON.stringify(intervals)}`);
+                const intervals = intervalSet.getIntervalsContaining(new IntervalNumber(5));
+                if (intervals.length !== 1 || intervals[0].toString() !== '[1, 10)') {
+                    throw new Error(`Expected [1, 10), but got ${JSON.stringify(intervals)}`);
                 }
             });
 
             test('should have correct excludeMin and excludeMax when using \'[1, 5)\'', () => {
                 const interval = Interval.toInterval('[1, 5)');
-                if (interval.excludeMin || !interval.excludeMax) {
+                if (!interval.min.isClosed || interval.max.isClosed) {
                     throw new Error(`Expected excludeMin to be false and excludeMax to be true, but got ${JSON.stringify(interval)}`);
                 }
             });
 
             test('should have correct excludeMin and excludeMax when using \'(5, 1]\'', () => {
                 const interval = Interval.toInterval('(5, 1]');
-                if (interval.excludeMin || !interval.excludeMax) {
+                if (!interval.min.isClosed || interval.max.isClosed) {
                     throw new Error(`Expected excludeMin to be false and excludeMax to be true, but got ${JSON.stringify(interval)}`);
                 }
             });
