@@ -109,6 +109,7 @@ export class Interval {
             return !isNaN(a) && !isNaN(b) && startSymbolValid && endSymbolValid && (a !== b || (a === b && parts[0].startsWith('[') && parts[1].endsWith(']')));
         }
         catch (error) {
+            console.error('Error validating interval string:', error);
             return false;
         }
     }
