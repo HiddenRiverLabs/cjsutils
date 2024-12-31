@@ -19,7 +19,7 @@ export class IntervalSetOptions {
  */
 export class IntervalSet {
     intervals: Interval[] = [];
-    private mergeAddedInterval: boolean = true;
+    mergeAddedInterval: boolean = true;
 
     /**
      * Creates a new IntervalSet object.
@@ -35,18 +35,18 @@ export class IntervalSet {
                 this.intervals.push(intervalObject);
             }
         }
-        this.mergeAddedInterval = intervalSet?.options?.mergeAddedInterval ?? true;
+        this.mergeAddedInterval = intervalSet?.options?.mergeAddedInterval ?? this.mergeAddedInterval;
         if (this.mergeAddedInterval) {
-            this.mergeIntervals();
+            IntervalSet.mergeIntervals(this.intervals);
         }
-        this.sort();
+        IntervalSet.sort(this.intervals);
     }
 
     /**
      * Sorts the intervals in the interval set, ascending based on the minimum value of each interval and isClosed is before !isClosed.
      */
-    sort(): void {
-        this.intervals.sort((a: Interval, b: Interval): number => {
+    static sort(intervals: Interval[]): void {
+        intervals.sort((a: Interval, b: Interval): number => {
             if (a.min.number < b.min.number) {
                 return -1;
             } else if (a.min.number > b.min.number) {
@@ -75,9 +75,9 @@ export class IntervalSet {
         const intervalObject = new Interval(interval);
         this.intervals.push(intervalObject);
         if (this.mergeAddedInterval) {
-            this.mergeIntervals();
+            IntervalSet.mergeIntervals(this.intervals);
         }
-        this.sort();
+        IntervalSet.sort(this.intervals);
     }
 
     /**
@@ -113,14 +113,14 @@ export class IntervalSet {
     /**
      * Merge overlapping intervals in the interval set.
      */
-    mergeIntervals(): void {
-        this.sort();
-        for (let i: number = 0; i < this.intervals.length - 1; i++) {
-            const current: Interval = this.intervals[i];
-            const next: Interval = this.intervals[i + 1];
+    static mergeIntervals(intervals: Interval[]): void {
+        IntervalSet.sort(intervals);
+        for (let i: number = 0; i < intervals.length - 1; i++) {
+            const current: Interval = intervals[i];
+            const next: Interval = intervals[i + 1];
             if (current.contains(next.min) || (current.max.number === next.min.number && current.max.isClosed === !next.min.isClosed)) {
                 current.max = current.max.number > next.max.number ? current.max : next.max;
-                this.intervals.splice(i + 1, 1);
+                intervals.splice(i + 1, 1);
                 i--;
             }
         }
@@ -136,31 +136,22 @@ export class IntervalSet {
     getIntervalGaps(interval?: IInterval | string): Interval[] {
         const intervalObject = interval ? new Interval(interval) : undefined;
         const gaps: Interval[] = [];
-        // make sure the intervals are sorted for the following logic to work
-        this.sort();
+        let intervalsCopy: Interval[] = this.intervals;
+        // make a copy of the intervals array if merging is false
+        if (!this.mergeAddedInterval) {
+            intervalsCopy = this.intervals.map((r: Interval): Interval => new Interval(r));
+            IntervalSet.mergeIntervals(intervalsCopy);
+        }
+        IntervalSet.sort(intervalsCopy);
         if (intervalObject) {
             // get all intervals that overlap with the given interval
-            const overlappingIntervals: Interval[] = this.intervals.filter((r: Interval): boolean => r.overlaps(intervalObject));
+            const overlappingIntervals: Interval[] = intervalsCopy.filter((r: Interval): boolean => r.overlaps(intervalObject));
             // if there are no overlapping intervals, return the given interval
             if (overlappingIntervals.length === 0) {
                 return [intervalObject];
             } else {
                 // sort the overlapping intervals
-                overlappingIntervals.sort((a: Interval, b: Interval): number => {
-                    if (a.min.number < b.min.number) {
-                        return -1;
-                    } else if (a.min.number > b.min.number) {
-                        return 1;
-                    } else {
-                        if (a.min.isClosed && !b.min.isClosed) {
-                            return -1;
-                        } else if (!a.min.isClosed && b.min.isClosed) {
-                            return 1;
-                        } else {
-                            return 0;
-                        }
-                    }
-                });
+                IntervalSet.sort(overlappingIntervals);
                 // if the given interval's min is not contained in the first overlapping interval, then it's assumed that the given min is before the first overlapping interval
                 if (!overlappingIntervals[0].contains(intervalObject.min)) {
                     gaps.push(new Interval({ a: intervalObject.min, b: new IntervalNumber(overlappingIntervals[0].min.number, !overlappingIntervals[0].min.isClosed) } as IInterval));
@@ -180,10 +171,10 @@ export class IntervalSet {
                 }
             }
         } else {
-            if (this.intervals.length > 1) {
-                for (let i: number = 0; i < this.intervals.length - 1; i++) {
-                    const current: Interval = this.intervals[i];
-                    const next: Interval = this.intervals[i + 1];
+            if (intervalsCopy.length > 1) {
+                for (let i: number = 0; i < intervalsCopy.length - 1; i++) {
+                    const current: Interval = intervalsCopy[i];
+                    const next: Interval = intervalsCopy[i + 1];
                     // If the intervals are not overlapping, there is a gap between them.
                     if (!current.overlaps(next)) {
                         gaps.push(new Interval({ a: new IntervalNumber(current.max.number, !current.max.isClosed), b: new IntervalNumber(next.min.number, !next.min.isClosed) } as IInterval));
