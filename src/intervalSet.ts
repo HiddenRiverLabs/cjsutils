@@ -84,7 +84,7 @@ export class IntervalSet {
      * Removes an interval from the interval set.
      * @param interval - The interval object or string representation.
      * @example
-     * intervalSet.removeInterval(new Interval({ a: 1, b: 10 }));
+     * intervalSet.removeInterval(new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(10, false) }));
      * @example
      * intervalSet.removeInterval('[1, 10)');
      */
@@ -118,8 +118,9 @@ export class IntervalSet {
         for (let i: number = 0; i < intervals.length - 1; i++) {
             const current: Interval = intervals[i];
             const next: Interval = intervals[i + 1];
-            if (current.contains(next.min) || (current.max.number === next.min.number && current.max.isClosed === !next.min.isClosed)) {
-                current.max = current.max.number > next.max.number ? current.max : next.max;
+            if (current.overlaps(next)) {
+                current.min = current.min.number < next.min.number || current.min.isClosed ? current.min : next.min;
+                current.max = current.max.number > next.max.number || current.max.isClosed ? current.max : next.max;
                 intervals.splice(i + 1, 1);
                 i--;
             }
@@ -160,14 +161,12 @@ export class IntervalSet {
                 for (let i: number = 0; i < overlappingIntervals.length - 1; i++) {
                     const current: Interval = overlappingIntervals[i];
                     const next: Interval = overlappingIntervals[i + 1];
-                    // If the intervals are not overlapping, there is a gap between them.
-                    if (!current.overlaps(next)) {
-                        gaps.push(new Interval({ a: new IntervalNumber(current.max.number, !current.max.isClosed), b: new IntervalNumber(next.min.number, !next.min.isClosed) } as IInterval));
-                    }
+                    // because we merged the intervals that fed the overlapping intervals, we can assume that the intervals are sorted and there are no overlapping intervals between them
+                    gaps.push(new Interval({ a: new IntervalNumber(current.max.number, !current.max.isClosed), b: new IntervalNumber(next.min.number, !next.min.isClosed) } as IInterval));
                 }
                 // check if the given interval's max is not in the last overlapping interval, assuming that the given max is after the last overlapping interval
                 if (!overlappingIntervals[overlappingIntervals.length - 1].contains(intervalObject.max)) {
-                    gaps.push(new Interval({ a: new IntervalNumber(overlappingIntervals[overlappingIntervals.length - 1].max.number, !overlappingIntervals[overlappingIntervals.length - 1].max.isClosed), b: new IntervalNumber(intervalObject.max.number, intervalObject.max.isClosed) } as IInterval));
+                    gaps.push(new Interval({ a: new IntervalNumber(overlappingIntervals[overlappingIntervals.length - 1].max.number, !overlappingIntervals[overlappingIntervals.length - 1].max.isClosed), b: intervalObject.max } as IInterval));
                 }
             }
         } else {
@@ -186,14 +185,51 @@ export class IntervalSet {
     }
 
     /**
+     * Create an interval gap in the interval set.
+     * @param interval - The interval object or string representation.
+     * @example
+     * intervalSet.createIntervalGap(new Interval({ a: new IntervalNumber(5), b: new IntervalNumber(10, false) }));
+     */
+    createIntervalGap(interval: IInterval | string): void {
+        const intervalObject = new Interval(interval);
+        // sort and get overlapping intervals
+        IntervalSet.sort(this.intervals);
+        const overlappingIntervals: Interval[] = this.intervals.filter((r: Interval): boolean => r.overlaps(intervalObject));
+        if (overlappingIntervals.length > 0) {
+            // sort the overlapping intervals
+            const overlappingIntervalSet = new IntervalSet({ intervals: overlappingIntervals, options: { mergeAddedInterval: false } });
+            IntervalSet.sort(overlappingIntervalSet.intervals);
+            // get all the intervals containing the given interval's min and update their max. then remove that interval from the overlapping intervals
+            const minIntervals: Interval[] = this.intervals.filter((r: Interval): boolean => r.contains(intervalObject.min));
+            for (const minInterval of minIntervals) {
+                minInterval.max = new IntervalNumber(intervalObject.min.number, intervalObject.min.isClosed);
+                overlappingIntervalSet.removeInterval(minInterval);
+            }
+            // get all the intervals containing the given interval's max and update their min. then remove that interval from the overlapping intervals
+            const maxIntervals: Interval[] = this.intervals.filter((r: Interval): boolean => r.contains(intervalObject.max));
+            for (const maxInterval of maxIntervals) {
+                maxInterval.min = new IntervalNumber(intervalObject.max.number, intervalObject.max.isClosed);
+                overlappingIntervalSet.removeInterval(maxInterval);
+            }
+            // remove the rest of the overlapping intervals from the local intervals
+            for (const overlappingInterval of overlappingIntervalSet.intervals) {
+                this.removeInterval(overlappingInterval);
+            }
+        }
+    }
+
+    /**
      * Returns the interval in the interval set that contain the given number.
-     * @param x - The IntervalNumber to check.
+     * @param x - The IntervalNumber or number to check.
      * @example
      * const intervalSet: IntervalSet = new IntervalSet({ intervals: [new Interval({ a: 1, b: 10 }), new Interval({ a: 20, b: 30 })], options: { mergeAddedInterval: true });
      * const intervals: Interval[] = intervalSet.getIntervalsContaining(5);
      * @returns An array of Interval objects that contain the provided number.
      */
-    getIntervalsContaining(x: IntervalNumber): Interval[] {
+    getIntervalsContaining(x: IntervalNumber | number): Interval[] {
+        if (typeof x === 'number') {
+            x = new IntervalNumber(x);
+        }
         return this.intervals.filter((r: Interval): boolean => r.contains(x));
     }
 }
