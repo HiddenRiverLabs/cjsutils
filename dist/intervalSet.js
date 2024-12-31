@@ -173,10 +173,8 @@ export class IntervalSet {
                 for (let i = 0; i < intervalsCopy.length - 1; i++) {
                     const current = intervalsCopy[i];
                     const next = intervalsCopy[i + 1];
-                    // If the intervals are not overlapping, there is a gap between them.
-                    if (!current.overlaps(next)) {
-                        gaps.push(new Interval({ a: new IntervalNumber(current.max.number, !current.max.isClosed), b: new IntervalNumber(next.min.number, !next.min.isClosed) }));
-                    }
+                    // because we merged the intervals that fed the overlapping intervals, we can assume that the intervals are sorted and there are no overlapping intervals between them
+                    gaps.push(new Interval({ a: new IntervalNumber(current.max.number, !current.max.isClosed), b: new IntervalNumber(next.min.number, !next.min.isClosed) }));
                 }
             }
         }
