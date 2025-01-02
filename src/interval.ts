@@ -38,30 +38,49 @@ export class IntervalNumber {
  * console.log(interval.toString()); // (1, 10]
  */
 export class Interval {
-    a: IntervalNumber;
-    b: IntervalNumber;
-    name: string = 'Not Specified';
+    #a: IntervalNumber;
+    #b: IntervalNumber;
+    public name: string = 'Not Specified';
+
+    get a(): IntervalNumber {
+        // return a copy of the interval number
+        return new IntervalNumber(this.#a.number, this.#a.isClosed);
+    }
+    set a(value: IntervalNumber) {
+        if (this.#b.number === value.number && !this.#b.isClosed && !value.isClosed) {
+            throw new Error('Invalid interval. Cannot exclude either minimum and maximum values if they are equal.');
+        }
+        this.#a = value;
+    }
+    
+    get b(): IntervalNumber {
+        // return a copy of the interval number
+        return new IntervalNumber(this.#b.number, this.#b.isClosed);
+    }
+    set b(value: IntervalNumber) {
+        if (this.#a.number === value.number && !this.#a.isClosed && !value.isClosed) {
+            throw new Error('Invalid interval. Cannot exclude either minimum and maximum values if they are equal.');
+        }
+        this.#b = value;
+    }
 
     constructor(interval: IInterval | string) {
         if (typeof interval === 'string') {
-            if (!Interval.validIntervalString(interval)) {
-                throw new Error('Invalid interval string.');
-            }
             interval = Interval.toInterval(interval);
         }
         if (interval.a === interval.b && (!interval.a.isClosed || !interval.b.isClosed)) {
             throw new Error('Invalid interval. Cannot exclude either minimum and maximum values if they are equal.');
         }
-        this.a = interval.a;
-        this.b = interval.b;
+        this.#a = interval.a;
+        this.#b = interval.b;
         this.name = interval.name ?? this.name;
     }
 
     get min(): IntervalNumber {
-        return this.a.number < this.b.number ? this.a : this.b;
+        return this.#a.number < this.#b.number ? this.a : this.b;
     }
     set min(value: IntervalNumber) {
-        if (this.a.number === this.min.number) {
+        if (this.#a.number === this.min.number) {
             this.a = value;
         } else {
             this.b = value;
@@ -69,10 +88,10 @@ export class Interval {
     }
 
     get max(): IntervalNumber {
-        return this.a.number > this.b.number ? this.a : this.b;
+        return this.#a.number > this.#b.number ? this.a : this.b;
     }
     set max(value: IntervalNumber) {
-        if (this.a.number === this.max.number) {
+        if (this.#a.number === this.max.number) {
             this.a = value;
         } else {
             this.b = value;
@@ -82,7 +101,10 @@ export class Interval {
     /**
      * Returns true if the interval contains the given IntervalNumber.
      */
-    contains(x: IntervalNumber): boolean {
+    contains(x: IntervalNumber | Interval): boolean {
+        if (x instanceof Interval) {
+            return this.contains(x.a) && this.contains(x.b);
+        }
         const lowerBound: boolean = this.min.number < x.number || (this.min.number === x.number && this.min.isClosed && x.isClosed);
         const upperBound: boolean = this.max.number > x.number || (this.max.number === x.number && this.max.isClosed && x.isClosed);
         return lowerBound && upperBound;
@@ -92,7 +114,7 @@ export class Interval {
      * Returns true if the interval overlaps with the given interval.
      */
     overlaps(interval: Interval): boolean {
-        return this.contains(interval.a) || this.contains(interval.b) || interval.contains(this.a) || interval.contains(this.b);
+        return this.contains(interval.a) || this.contains(interval.b) || interval.contains(this.#a) || interval.contains(this.#b);
     }
 
     /**
@@ -102,9 +124,9 @@ export class Interval {
      * console.log(interval.toString()); // (1, 10]
      */
     toString(): string {
-        const aIsClosedChar: string = this.a.isClosed ? '[' : '(';
-        const bIsClosedChar: string = this.b.isClosed ? ']' : ')';
-        return `${aIsClosedChar}${this.a.number}, ${this.b.number}${bIsClosedChar}`;
+        const aIsClosedChar: string = this.#a.isClosed ? '[' : '(';
+        const bIsClosedChar: string = this.#b.isClosed ? ']' : ')';
+        return `${aIsClosedChar}${this.#a.number}, ${this.#b.number}${bIsClosedChar}`;
     }
 
     /**

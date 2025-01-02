@@ -23,6 +23,7 @@ Tracks a list of `Interval`s with the following additional features
 - `mergeIntervals()` that looks at the list of Intervals and combined Intervals that overlap
 - `getIntervalGaps(interval?: IInterval | string)` will return a list of Intervals that represent the gaps between the existing Intervals, and when provided an Interval will return an array of Intervals that represent the intersection between the  provided Interval and existing Intervals (useful when providing a new Interval and getting the Intervals that don't already exist, such as efficiently requesting Intervals not yet searched)
 - `createIntervalGap(interval?: IInterval | string)` will create a gap in the list of intervals
+- `chainIntervals()` will link intervals together so that there are no gaps and turn off `mergeAddedInterval` to prevent future merging all intervals into 1 big interval. This is useful to fix gaps in your intervals.
 - `getIntervalsContaining(interval: IntervalNumber | number)` returns an array of Intervals that contain the provided IntervalNumber or number
 
 ## Testing
