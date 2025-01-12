@@ -4,7 +4,7 @@ Math-based objects not inluded in JS, built in TS.
 
 ## Intervals
 
-First math library added
+Represents a number interval with the following features
 
 - An Interval can be created from the `IInterval` type passed into Interval constructor
 - Or an Interval can be created via string that represents an interval using mathematical notation '[1, 5)' where '[]' are inclusive and '()' are exclusive

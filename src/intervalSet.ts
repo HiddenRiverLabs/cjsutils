@@ -22,6 +22,23 @@ export class IntervalSet {
     private _mergeAddedInterval: boolean = true;
 
     /**
+     * Creates a new IntervalSet object.
+     * intervalSet is optional and defaults to undefined.
+     * @param intervalSet - The interval set object.
+     * @example
+     * const intervalSet: IntervalSet = new IntervalSet({ intervals: [new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(10, false) }), new Interval({ a: new IntervalNumber(5), b: new IntervalNumber(15, false) })], options: { mergeAddedInterval: true });
+     */
+    constructor(intervalSet?: { intervals?: (IInterval | string)[], options?: IntervalSetOptions }) {
+        if (intervalSet?.intervals) {
+            for (const interval of intervalSet.intervals) {
+                const intervalObject = new Interval(interval);
+                this._intervals.push(intervalObject);
+            }
+        }
+        this.mergeAddedInterval = intervalSet?.options?.mergeAddedInterval ?? this._mergeAddedInterval;
+    }
+
+    /**
      * Returns a copy of the intervals in the interval set.
      */
     get intervals(): Interval[] {
@@ -41,23 +58,6 @@ export class IntervalSet {
         if (this.mergeAddedInterval) {
             IntervalSet.mergeIntervals(this._intervals);
         }
-    }
-
-    /**
-     * Creates a new IntervalSet object.
-     * intervalSet is optional and defaults to undefined.
-     * @param intervalSet - The interval set object.
-     * @example
-     * const intervalSet: IntervalSet = new IntervalSet({ intervals: [new Interval({ a: new IntervalNumber(1), b: new IntervalNumber(10, false) }), new Interval({ a: new IntervalNumber(5), b: new IntervalNumber(15, false) })], options: { mergeAddedInterval: true });
-     */
-    constructor(intervalSet?: { intervals?: (IInterval | string)[], options?: IntervalSetOptions }) {
-        if (intervalSet?.intervals) {
-            for (const interval of intervalSet.intervals) {
-                const intervalObject = new Interval(interval);
-                this._intervals.push(intervalObject);
-            }
-        }
-        this.mergeAddedInterval = intervalSet?.options?.mergeAddedInterval ?? this._mergeAddedInterval;
     }
 
     /**

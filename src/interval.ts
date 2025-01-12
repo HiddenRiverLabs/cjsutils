@@ -24,7 +24,10 @@ export class IntervalNumber {
     /**
      * Returns true if the given IntervalNumber is equal to this IntervalNumber.
      */
-    equals(x: IntervalNumber): boolean {
+    equals(x: IntervalNumber | number): boolean {
+        if (typeof x === 'number') {
+            x = new IntervalNumber(x);
+        }
         return this.number === x.number && this.isClosed === x.isClosed;
     }
 }
@@ -42,28 +45,6 @@ export class Interval {
     #b: IntervalNumber;
     public name: string = 'Not Specified';
 
-    get a(): IntervalNumber {
-        // return a copy of the interval number
-        return new IntervalNumber(this.#a.number, this.#a.isClosed);
-    }
-    set a(value: IntervalNumber) {
-        if (this.#b.number === value.number && !this.#b.isClosed && !value.isClosed) {
-            throw new Error('Invalid interval. Cannot exclude either minimum and maximum values if they are equal.');
-        }
-        this.#a = value;
-    }
-    
-    get b(): IntervalNumber {
-        // return a copy of the interval number
-        return new IntervalNumber(this.#b.number, this.#b.isClosed);
-    }
-    set b(value: IntervalNumber) {
-        if (this.#a.number === value.number && !this.#a.isClosed && !value.isClosed) {
-            throw new Error('Invalid interval. Cannot exclude either minimum and maximum values if they are equal.');
-        }
-        this.#b = value;
-    }
-
     constructor(interval: IInterval | string) {
         if (typeof interval === 'string') {
             interval = Interval.toInterval(interval);
@@ -76,10 +57,41 @@ export class Interval {
         this.name = interval.name ?? this.name;
     }
 
+    get a(): IntervalNumber {
+        // return a copy of the interval number
+        return new IntervalNumber(this.#a.number, this.#a.isClosed);
+    }
+    set a(value: IntervalNumber | number) {
+        if (typeof value === 'number') {
+            value = new IntervalNumber(value);
+        }
+        if (this.#b.number === value.number && !this.#b.isClosed && !value.isClosed) {
+            throw new Error('Invalid interval. Cannot exclude either minimum and maximum values if they are equal.');
+        }
+        this.#a = value;
+    }
+
+    get b(): IntervalNumber {
+        // return a copy of the interval number
+        return new IntervalNumber(this.#b.number, this.#b.isClosed);
+    }
+    set b(value: IntervalNumber | number) {
+        if (typeof value === 'number') {
+            value = new IntervalNumber(value);
+        }
+        if (this.#a.number === value.number && !this.#a.isClosed && !value.isClosed) {
+            throw new Error('Invalid interval. Cannot exclude either minimum and maximum values if they are equal.');
+        }
+        this.#b = value;
+    }
+
     get min(): IntervalNumber {
         return this.#a.number < this.#b.number ? this.a : this.b;
     }
-    set min(value: IntervalNumber) {
+    set min(value: IntervalNumber | number) {
+        if (typeof value === 'number') {
+            value = new IntervalNumber(value);
+        }
         if (this.#a.number === this.min.number) {
             this.a = value;
         } else {
@@ -90,7 +102,10 @@ export class Interval {
     get max(): IntervalNumber {
         return this.#a.number > this.#b.number ? this.a : this.b;
     }
-    set max(value: IntervalNumber) {
+    set max(value: IntervalNumber | number) {
+        if (typeof value === 'number') {
+            value = new IntervalNumber(value);
+        }
         if (this.#a.number === this.max.number) {
             this.a = value;
         } else {
@@ -99,7 +114,7 @@ export class Interval {
     }
 
     /**
-     * Returns true if the interval contains the given IntervalNumber.
+     * Returns true if the interval contains the given IntervalNumber or Interval.
      */
     contains(x: IntervalNumber | Interval): boolean {
         if (x instanceof Interval) {
